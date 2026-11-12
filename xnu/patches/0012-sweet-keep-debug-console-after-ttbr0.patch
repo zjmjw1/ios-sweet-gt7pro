@@ -183,33 +183,6 @@ diff --git a/osfmk/arm64/Makefile b/osfmk/arm64/Makefile
  	asm.h \
  	tlb.h \
  	pal_hibernate.h
-diff --git a/osfmk/arm/arm_init.c b/osfmk/arm/arm_init.c
---- a/osfmk/arm/arm_init.c
-+++ b/osfmk/arm/arm_init.c
-@@ -523,6 +523,7 @@
- 
- 	sweet_early_mark(7, "entering arm_vm_init");
- 	arm_vm_init(xmaxmem, args);
-+	sweet_early_mark(15, "arm_vm_init returned");
- 
- 	if (debug_boot_arg) {
- 		patch_low_glo();
-@@ -535,9 +536,15 @@
- 	PE_consistent_debug_inherit();
- 
- 	/* Setup debugging output. */
-+	sweet_early_mark(16, "calling serial_init");
- 	const unsigned int serial_exists = serial_init();
-+	sweet_early_mark(19, "serial_init returned");
- 	kernel_startup_initialize_upto(STARTUP_SUB_KPRINTF);
- 	kprintf("kprintf initialized\n");
-+	sweet_early_mark(20, "kprintf startup complete");
-+	if (serial_exists) {
-+		sweet_early_disable();
-+	}
- 
- 	serialmode = 0;
- 	if (PE_parse_boot_argn("serial", &serialmode, sizeof(serialmode))) {
 diff --git a/pexpert/arm/pe_serial.c b/pexpert/arm/pe_serial.c
 --- a/pexpert/arm/pe_serial.c
 +++ b/pexpert/arm/pe_serial.c
