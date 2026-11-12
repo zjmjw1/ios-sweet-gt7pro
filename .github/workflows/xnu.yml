@@ -67,6 +67,16 @@ jobs:
           xcodebuild -version
           xcrun --find iig
 
+      - name: Patch inventory
+        run: |
+          echo "== 我们仓库里的补丁数 =="
+          ls -1 xnu/patches/*.patch | wc -l
+          echo "== dxb 会应用的补丁 =="
+          ls -1 dxb/patches/*.patch | wc -l
+          echo "== 0010 是否存在 =="
+          ls -l dxb/patches/0010-*.patch
+          echo "== 0010 前 12 行 =="
+          head -12 dxb/patches/0010-*.patch
       - name: Build
         working-directory: dxb
         env:
@@ -74,6 +84,18 @@ jobs:
           MAKEFLAGS: ${{ inputs.keep_going == 'false' && '' || '-k' }}
         run: bash build.sh
 
+      - name: Patch outcome
+        if: always()
+        run: |
+          echo "== 补丁是否真的落到源码里 =="
+          for f in xnu/osfmk/arm64/sweet_early.c xnu/osfmk/arm64/sweet_early.h; do
+            if [ -f "$f" ]; then echo "OK      $f"; else echo "MISSING $f"; fi
+          done
+          echo "== start.s 里的早期帧缓冲代码 =="
+          grep -n "fc800000" xnu/osfmk/arm64/start.s || echo "start.s: 没有 fc800000"
+          grep -n "sweet_mark" xnu/osfmk/arm64/start.s || echo "start.s: 没有 sweet_mark"
+          echo "== conf/files.arm64 是否登记了 sweet_early =="
+          grep -n "sweet_early" xnu/osfmk/conf/files.arm64 || echo "files.arm64: 未登记"
       - name: Package build tree for local compiles
         if: always()
         run: |
